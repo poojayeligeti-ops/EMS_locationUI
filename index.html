@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Accumen EMS — Location Hierarchy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#2F4B9F; --navy-dark:#1F3570; --navy-tint:#E8ECF7;
+    --orange:#EC7802; --orange-dark:#C56200; --orange-tint:#FDECD9;
+    --peach:#FDF3EC; --peach-line:#F5E3D6;
+    --ink:#232734; --ink-soft:#5B6072; --ink-faint:#8B90A0;
+    --border:#E7E2D8; --border-soft:#F0ECE3;
+    --grade-a:#B3261E; --grade-a-tint:#FBE7E6;
+    --grade-b:#EC7802; --grade-b-tint:#FDECD9;
+    --grade-c:#2F4B9F; --grade-c-tint:#E8ECF7;
+    --grade-d:#6B7280; --grade-d-tint:#EEF0F2;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{font-family:'Figtree',sans-serif;color:var(--ink);background:#fff;font-size:14px;}
+  .mono{font-family:'Space Mono',monospace;}
+  button{font-family:inherit;}
+  .app{display:flex;height:100vh;min-height:640px;}
+
+  .rail{width:60px;flex:0 0 60px;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:6px;}
+  .rail-logo{width:32px;height:32px;border-radius:8px;background:var(--orange);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;margin-bottom:18px;}
+  .rail-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-faint);cursor:pointer;}
+  .rail-icon svg{width:19px;height:19px;}
+  .rail-icon.active{background:var(--orange-tint);color:var(--orange);}
+  .rail-icon:hover:not(.active){background:var(--border-soft);color:var(--ink);}
+  .rail-spacer{flex:1;}
+  .rail-avatar{width:32px;height:32px;border-radius:50%;background:var(--orange-tint);color:var(--orange-dark);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;margin-top:8px;}
+
+  .shell{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .tabbar{display:flex;align-items:center;gap:28px;padding:0 24px;height:52px;border-bottom:1px solid var(--border);flex:0 0 auto;position:relative;}
+  .tab{font-weight:500;color:var(--ink-soft);height:100%;display:flex;align-items:center;border-bottom:2px solid transparent;cursor:default;font-size:14.5px;}
+  .tab.active{color:var(--orange);border-color:var(--orange);font-weight:600;}
+  .tabbar-menu{margin-left:auto;position:relative;}
+  .kebab{width:30px;height:30px;border-radius:6px;border:none;background:none;color:var(--ink-faint);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .kebab:hover{background:var(--border-soft);}
+  .kebab svg{width:18px;height:18px;}
+  .kebab-menu{position:absolute;right:0;top:36px;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(30,30,40,.12);min-width:190px;padding:6px;display:none;z-index:40;}
+  .kebab-menu.open{display:block;}
+  .kebab-menu button{display:block;width:100%;text-align:left;padding:9px 10px;border:none;background:none;border-radius:6px;font-size:13.5px;color:var(--ink);cursor:pointer;}
+  .kebab-menu button:hover{background:var(--peach);color:var(--orange-dark);}
+
+  .view{flex:1;display:none;min-height:0;}
+  .view.active{display:flex;}
+
+  .tree-panel{width:280px;flex:0 0 280px;border-right:1px solid var(--border);background:var(--peach);display:flex;flex-direction:column;min-height:0;}
+  .tree-panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 10px;flex:0 0 auto;}
+  .tree-panel-head h2{font-size:15px;margin:0;font-weight:700;}
+  .add-root-btn{width:26px;height:26px;border-radius:6px;border:none;background:#fff;border:1px solid var(--border);color:var(--ink-soft);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .add-root-btn:hover{background:var(--orange);border-color:var(--orange);color:#fff;}
+  .tree-scroll{flex:1;overflow:auto;padding:2px 8px 16px;}
+  .tree-node{user-select:none;}
+  .tree-row{display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:13.5px;color:var(--ink);}
+  .tree-row:hover{background:#F7E9DC;}
+  .tree-row.selected{background:var(--orange-tint);color:var(--orange-dark);font-weight:600;}
+  .tree-caret{width:14px;height:14px;flex:0 0 14px;display:flex;align-items:center;justify-content:center;color:var(--ink-faint);transition:transform .12s;}
+  .tree-caret.open{transform:rotate(90deg);}
+  .tree-caret.leaf{visibility:hidden;}
+  .tree-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tree-children{margin-left:17px;border-left:1px dashed var(--peach-line);padding-left:2px;}
+  .tree-children.collapsed{display:none;}
+
+  .main-panel{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .breadcrumb{padding:12px 24px;background:var(--peach);border-bottom:1px solid var(--border);font-size:13.5px;color:var(--ink-soft);flex:0 0 auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .breadcrumb b{color:var(--ink);font-weight:700;font-style:normal;}
+  .breadcrumb .crumb-sep{color:var(--ink-faint);}
+  .toolbar{display:flex;align-items:center;gap:10px;padding:12px 24px;border-bottom:1px solid var(--border);flex:0 0 auto;}
+  .search-input{flex:1;max-width:320px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;color:var(--ink-soft);background:#fff;}
+  .toolbar-spacer{flex:1;}
+  .btn{border:none;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .btn-primary{background:var(--orange);color:#fff;}
+  .btn-primary:hover{background:var(--orange-dark);}
+  .btn-primary[disabled]{background:#EFE2D3;color:#C9BCA9;cursor:not-allowed;}
+  .btn-ghost{background:#fff;border:1px solid var(--border);color:var(--ink-soft);}
+  .btn-ghost:hover{background:var(--border-soft);}
+  .btn-sm{padding:6px 12px;font-size:13px;}
+  .btn svg{width:15px;height:15px;}
+
+  .table-wrap{flex:1;overflow:auto;}
+  table{width:100%;border-collapse:collapse;}
+  thead th{position:sticky;top:0;background:var(--peach);text-align:left;padding:10px 20px;font-size:12.5px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--border);white-space:nowrap;}
+  tbody td{padding:12px 20px;border-bottom:1px solid var(--border-soft);font-size:13.5px;vertical-align:middle;}
+  tbody tr:hover{background:#FCFAF6;}
+  .name-cell{font-weight:600;color:var(--ink);}
+  .desc-cell{color:var(--ink-soft);}
+  .type-pill{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink-soft);}
+  .type-dot{width:7px;height:7px;border-radius:50%;}
+  .grade-badge{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 7px;border-radius:6px;font-size:12px;font-weight:700;font-family:'Space Mono',monospace;}
+  .grade-a{background:var(--grade-a-tint);color:var(--grade-a);}
+  .grade-b{background:var(--grade-b-tint);color:var(--grade-b);}
+  .grade-c{background:var(--grade-c-tint);color:var(--grade-c);}
+  .grade-d{background:var(--grade-d-tint);color:var(--grade-d);}
+  .grade-inherited{opacity:.55;font-weight:600;}
+  .grade-none{color:var(--ink-faint);font-size:12.5px;}
+  .program-pill{font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;margin-left:6px;letter-spacing:.02em;}
+  .program-em{background:var(--navy-tint);color:var(--navy);}
+  .program-pms{background:#FBE7EF;color:#993556;}
+  .code-cell{color:var(--ink-soft);}
+  .row-actions{display:flex;gap:4px;}
+  .icon-btn{width:26px;height:26px;border:none;background:none;border-radius:6px;color:var(--ink-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .icon-btn:hover{background:var(--border-soft);color:var(--ink);}
+  .icon-btn svg{width:15px;height:15px;}
+  .empty-state{padding:60px 24px;text-align:center;color:var(--ink-faint);font-size:13.5px;}
+
+  .detail-panel{flex:0 0 auto;max-height:46%;display:flex;flex-direction:column;border-top:1px solid var(--border);background:#fff;}
+  .detail-head{display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border);flex:0 0 auto;}
+  .detail-tabs{display:flex;gap:22px;}
+  .detail-tab{border:none;background:none;padding:13px 0;font-size:13.5px;color:var(--ink-soft);font-weight:600;cursor:pointer;border-bottom:2px solid transparent;}
+  .detail-tab.active{color:var(--orange-dark);border-color:var(--orange);}
+  .detail-body{flex:1;overflow:auto;padding:18px 20px;}
+  .detail-pane{display:none;}
+  .detail-pane.active{display:block;}
+  .detail-grid{display:grid;grid-template-columns:180px 1fr;row-gap:12px;column-gap:14px;font-size:13.5px;}
+  .detail-grid .dk{font-weight:600;color:var(--ink-soft);}
+  .detail-grid .dv{color:var(--ink);}
+  .detail-diagram{margin-top:18px;}
+  .detail-diagram b{font-size:12.5px;color:var(--ink-soft);display:block;margin-bottom:8px;}
+  .diagram-placeholder{width:220px;height:150px;border:1px dashed var(--border);border-radius:8px;background:var(--border-soft);display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:12.5px;text-align:center;}
+  .history-feed{display:flex;flex-direction:column;}
+  .history-item{display:flex;gap:12px;position:relative;padding-bottom:22px;}
+  .history-item:not(:last-child)::after{content:'';position:absolute;left:13px;top:28px;bottom:-22px;width:1px;background:var(--border);}
+  .history-avatar{width:28px;height:28px;border-radius:50%;background:var(--navy-tint);color:var(--navy);flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;z-index:1;}
+  .history-content{flex:1;padding-top:3px;min-width:0;}
+  .history-header{font-size:13px;color:var(--ink);}
+  .history-header b{font-weight:700;}
+  .history-time{font-size:11.5px;color:var(--ink-faint);margin-top:2px;}
+  .history-changes{margin-top:8px;display:flex;flex-direction:column;gap:5px;}
+  .history-change{font-size:12.5px;color:var(--ink-soft);background:var(--border-soft);border-radius:6px;padding:6px 10px;}
+  .history-change .hc-field{font-weight:600;color:var(--ink);}
+  .history-change .hc-from{color:var(--ink-faint);text-decoration:line-through;}
+  .history-change .hc-to{color:var(--ink);font-weight:600;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(24,26,35,.42);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:14px;width:660px;max-width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);flex:0 0 auto;}
+  .modal-head h3{margin:0;font-size:16px;}
+  .modal-close{width:28px;height:28px;border:none;background:none;color:var(--ink-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:6px;}
+  .modal-close:hover{background:var(--border-soft);}
+  .modal-body{padding:20px 22px;overflow:auto;}
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+  .field.full{grid-column:1/-1;}
+  .field label{font-size:12.5px;font-weight:600;color:var(--ink-soft);}
+  .field label .req{color:var(--grade-a);}
+  .field input, .field select, .field textarea{border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:13.5px;font-family:inherit;color:var(--ink);background:#fff;}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--navy);}
+  .field-hint{font-size:11.5px;color:var(--ink-faint);}
+  .parent-row{display:flex;gap:8px;}
+  .parent-row input{flex:1;background:var(--border-soft);color:var(--ink-soft);}
+  .pick-btn{width:38px;flex:0 0 38px;border:1px solid var(--border);background:#fff;border-radius:8px;color:var(--ink-soft);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .pick-btn:hover{border-color:var(--navy);color:var(--navy);}
+  .barcode-box{border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;}
+  .barcode-box-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .barcode-box-head b{font-size:12.5px;}
+  .barcode-box-head input{flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Space Mono',monospace;}
+  .barcode-visual{display:flex;align-items:stretch;height:34px;gap:0;margin-top:4px;}
+  .barcode-caption{text-align:center;font-family:'Space Mono',monospace;font-size:11.5px;color:var(--ink-soft);margin-top:4px;letter-spacing:.05em;}
+  .notes-section{margin-top:4px;}
+  .notes-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:10px;}
+  .notes-head span{font-size:12.5px;font-weight:600;color:var(--ink-soft);}
+  .add-note-btn{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--orange);font-weight:600;font-size:13px;cursor:pointer;}
+  .add-note-btn svg{width:15px;height:15px;}
+  .note-row{display:flex;gap:8px;margin-bottom:8px;}
+  .note-row textarea{flex:1;min-height:44px;resize:vertical;}
+  .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border);flex:0 0 auto;}
+
+  .picker-tree{border:1px solid var(--border);border-radius:10px;max-height:320px;overflow:auto;padding:8px;}
+  .picker-row{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:13.5px;}
+  .picker-row:hover{background:var(--peach);}
+  .picker-row.picked{background:var(--orange-tint);color:var(--orange-dark);font-weight:600;}
+  .picker-children{margin-left:18px;}
+
+  .config-side{width:220px;flex:0 0 220px;border-right:1px solid var(--border);background:var(--peach);padding:18px 14px;}
+  .config-title{font-size:15px;font-weight:700;margin:0 6px 14px;}
+  .config-tab{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:8px;border:none;background:none;font-size:13.5px;color:var(--ink-soft);cursor:pointer;margin-bottom:4px;}
+  .config-tab.active{background:#fff;color:var(--orange-dark);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .admin-toggle{margin-top:18px;padding-top:14px;border-top:1px solid var(--peach-line);}
+  .admin-toggle-row{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;margin:0 6px 4px;}
+  .admin-toggle-row input{width:15px;height:15px;accent-color:var(--orange);}
+  .admin-toggle .field-hint{display:block;margin:0 6px;}
+  .admin-locked-note{display:flex;align-items:center;gap:10px;background:var(--border-soft);color:var(--ink-soft);border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:20px;}
+  .admin-locked-note svg{width:18px;height:18px;flex:0 0 18px;}
+  .create-type-form{border:1px solid var(--navy-tint);background:var(--navy-tint);border-radius:10px;padding:16px 18px;margin-bottom:20px;}
+  .ctf-head{font-size:13.5px;font-weight:700;color:var(--navy);margin-bottom:12px;}
+  .ctf-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .ctf-grid .field{margin-bottom:0;}
+  .ctf-checks{display:flex;flex-direction:column;gap:6px;}
+  .ctf-checks label{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:500;color:var(--ink);}
+  .ctf-checks input{width:15px;height:15px;accent-color:var(--navy);}
+  .create-type-form .btn{margin-top:14px;}
+  .config-main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:auto;}
+  .config-pane{display:none;padding:22px 26px;}
+  .config-pane.active{display:block;}
+  .config-pane h3{margin:0 0 4px;font-size:16px;}
+  .config-pane p.sub{margin:0 0 18px;color:var(--ink-soft);font-size:13px;}
+  .type-tree{font-size:13.5px;margin-bottom:24px;}
+  .type-tree-node{margin-bottom:1px;}
+  .type-tree-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;}
+  .type-tree-row:hover{background:var(--peach);}
+  .type-tree-caret{width:14px;height:14px;flex:0 0 14px;color:var(--ink-faint);display:flex;align-items:center;justify-content:center;}
+  .type-tree-caret.leaf{visibility:hidden;}
+  .type-tree-dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px;}
+  .type-tree-label{font-weight:700;color:var(--ink);white-space:nowrap;}
+  .type-tree-desc{color:var(--ink-soft);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .type-tree-flags{margin-left:auto;display:flex;gap:6px;flex:0 0 auto;padding-left:10px;}
+  .type-tree-children{margin-left:19px;border-left:1px dashed var(--peach-line);padding-left:9px;}
+  .flag-chip{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+  .flag-yes{background:var(--navy-tint);color:var(--navy);}
+  .flag-no{background:var(--border-soft);color:var(--ink-faint);}
+  .grade-table{width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .grade-table th{background:var(--peach);text-align:left;padding:9px 14px;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);border-bottom:1px solid var(--border);}
+  .grade-table td{padding:11px 14px;border-bottom:1px solid var(--border-soft);font-size:13px;}
+  .limit-pair{font-family:'Space Mono',monospace;font-size:12.5px;}
+  .limit-pair .alert{color:var(--ink-soft);}
+  .limit-pair .action{color:var(--ink);font-weight:700;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="rail">
+    <div class="rail-logo">A</div>
+    <div class="rail-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg></div>
+    <div class="rail-icon active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/></svg></div>
+    <div class="rail-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div>
+    <div class="rail-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
+    <div class="rail-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5V6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/></svg></div>
+    <div class="rail-spacer"></div>
+    <div class="rail-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+    <div class="rail-avatar">SU</div>
+  </div>
+
+  <div class="shell">
+    <div class="tabbar">
+      <div class="tab active">Location</div>
+      <div class="tab">Product</div>
+      <div class="tab">Equipment</div>
+      <div class="tab">Media</div>
+      <div class="tab">Organism</div>
+      <div class="tab">Test Method</div>
+      <div class="tabbar-menu">
+        <button class="kebab" onclick="toggleKebab()">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+        </button>
+        <div class="kebab-menu" id="kebabMenu">
+          <button onclick="showView('hierarchy'); closeKebab();">Location hierarchy</button>
+          <button onclick="showView('config'); closeKebab();">Location configuration</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="view active" id="view-hierarchy">
+      <div class="tree-panel">
+        <div class="tree-panel-head">
+          <h2>Location hierarchy</h2>
+          <button class="add-root-btn" title="Add top-level location (e.g. a new Site / Plant)" onclick="openLocationModal(null, ROOT_ID)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+        <div class="tree-scroll" id="treeScroll"></div>
+      </div>
+
+      <div class="main-panel">
+        <div class="breadcrumb" id="breadcrumb"></div>
+        <div class="toolbar">
+          <input class="search-input" placeholder="Search within this level…" oninput="renderTable()" id="tableSearch">
+          <div class="toolbar-spacer"></div>
+          <button class="btn btn-ghost" disabled>Show/hide columns</button>
+          <button class="btn btn-primary" id="addChildBtn" onclick="openLocationModal(null, state.selectedId)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Add location
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Location type</th>
+                <th>Classification</th>
+                <th>Sample type</th>
+                <th>Location code</th>
+                <th>Barcode</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+          <div class="empty-state" id="emptyState" style="display:none;">No child locations yet at this level. Use “Add location” to create one.</div>
+        </div>
+        <div class="detail-panel" id="detailPanel" style="display:none;">
+          <div class="detail-head">
+            <div class="detail-tabs">
+              <button class="detail-tab active" id="dtab-info" onclick="showDetailTab('info')">Location Information</button>
+              <button class="detail-tab" id="dtab-history" onclick="showDetailTab('history')">Location History</button>
+            </div>
+            <button class="modal-close" onclick="closeDetailPanel()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="detail-body">
+            <div class="detail-pane active" id="dpane-info">
+              <div class="detail-grid" id="detailInfoGrid"></div>
+              <div class="detail-diagram">
+                <b>Diagram(s)</b>
+                <div class="diagram-placeholder">No diagram uploaded</div>
+              </div>
+            </div>
+            <div class="detail-pane" id="dpane-history">
+              <div class="history-feed" id="historyFeed"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-config">
+      <div class="config-side">
+        <p class="config-title">Location configuration</p>
+        <button class="config-tab" id="cfgtab-classification" onclick="showConfigPane('classification')">Classification &amp; limits</button>
+        <button class="config-tab" id="cfgtab-type" onclick="showConfigPane('type')">Location type</button>
+        <div class="admin-toggle">
+          <label class="admin-toggle-row">
+            <input type="checkbox" id="adminModeToggle" onchange="onAdminModeChange()">
+            <span>Admin mode</span>
+          </label>
+          <span class="field-hint">Only Admins can create new hierarchy levels.</span>
+        </div>
+      </div>
+      <div class="config-main">
+
+        <div class="config-pane" id="pane-classification">
+          <h3>Classification &amp; limits</h3>
+          <p class="sub">Each grade resolves to a limit per sample type — air / settle / contact / glove, alert and action.</p>
+          <table class="grade-table">
+            <thead>
+              <tr><th>Grade</th><th>Air (CFU/m³)</th><th>Settle plate (CFU/4h)</th><th>Contact plate (CFU/plate)</th><th>Glove print (CFU/glove)</th></tr>
+            </thead>
+            <tbody id="gradeTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="config-pane" id="pane-type">
+          <h3>Location type</h3>
+          <p class="sub">Company → Site/Plant → Building/Facility → Suite/Line → Environmental Class/Grade → Sample Point ID. Grade is its own level, set directly under Suite/Line — a Room ID isn't tracked separately, so if two Grades belong to physically different rooms on the same line, that's only visible in each Grade's description text.</p>
+
+          <div id="adminCreateTypeBlock">
+            <div class="admin-locked-note" id="adminLockedNote">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <span>Admin access required to create a new hierarchy level. Toggle Admin mode to enable.</span>
+            </div>
+            <div class="create-type-form" id="createTypeForm" style="display:none;">
+              <div class="ctf-head">Create new hierarchy level</div>
+              <div class="ctf-grid">
+                <div class="field">
+                  <label>New level name <span class="req">*</span></label>
+                  <input id="ct-name" placeholder="e.g. Sub-Zone">
+                </div>
+                <div class="field">
+                  <label>Description <span class="req">*</span></label>
+                  <input id="ct-desc" placeholder="e.g. Optional split within a Zone">
+                </div>
+                <div class="field">
+                  <label>Sits under (parent type) <span class="req">*</span></label>
+                  <select id="ct-parent"></select>
+                  <span class="field-hint">This level becomes an allowed child of the parent you pick here.</span>
+                </div>
+                <div class="field">
+                  <label>Flags</label>
+                  <div class="ctf-checks">
+                    <label><input type="checkbox" id="ct-classification"> Grade applies here</label>
+                    <label><input type="checkbox" id="ct-sampling"> Is a sampling site</label>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="createLocationType()">Create level</button>
+            </div>
+          </div>
+
+          <div class="type-tree" id="typeTreeContainer"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal-overlay" id="locationModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="locationModalTitle">Add new location</h3>
+      <button class="modal-close" onclick="closeLocationModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field-grid">
+        <div class="field">
+          <label>Name <span class="req">*</span></label>
+          <input id="f-name" placeholder="e.g. Filling Line 4">
+        </div>
+        <div class="field">
+          <label>Description <span class="req">*</span></label>
+          <input id="f-desc" placeholder="e.g. Vial filling room">
+        </div>
+        <div class="field">
+          <label>Location type <span class="req">*</span></label>
+          <select id="f-type" onchange="onTypeChange()"></select>
+          <span class="field-hint" id="typeHint"></span>
+        </div>
+        <div class="field">
+          <label>Parent location</label>
+          <div class="parent-row">
+            <input id="f-parent" disabled>
+            <button class="pick-btn" title="Choose parent" onclick="openPicker()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h6l2 2h8v12H4z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="field" id="f-processtype-wrap" style="display:none;">
+          <label>Process performed here <span class="req">*</span></label>
+          <select id="f-processtype" onchange="onProcessTypeChange()">
+            <option value="aseptic-critical">Aseptic — critical, open exposure (→ Grade A)</option>
+            <option value="aseptic-background">Aseptic — background support (→ Grade B)</option>
+            <option value="terminal-less-critical">Terminally sterilised / less critical (→ Grade C)</option>
+            <option value="component-prep">Component prep / support (→ Grade D)</option>
+            <option value="non-sterile">Non-sterile, e.g. oral solid (→ unclassified)</option>
+          </select>
+          <span class="field-hint">Drives the suggested grade below — confirm or override it.</span>
+        </div>
+
+        <div class="field" id="f-classification-wrap" style="display:none;">
+          <label>Classification <span class="req">*</span></label>
+          <select id="f-classification"></select>
+          <span class="field-hint">Set once, here — this is the only level that carries a grade.</span>
+        </div>
+
+        <div class="field" id="f-sampletype-wrap" style="display:none;">
+          <label>Sample type <span class="req">*</span></label>
+          <select id="f-sampletype">
+            <option value="Viable air">Viable air</option>
+            <option value="Settle plate">Settle plate</option>
+            <option value="Contact plate">Contact / surface plate</option>
+            <option value="Glove print">Glove print</option>
+            <option value="Personnel">Personnel (PMS)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Location code <span class="req">*</span></label>
+          <input id="f-code" class="mono" placeholder="e.g. SP-VFR-04">
+        </div>
+      </div>
+
+      <div class="barcode-box">
+        <div class="barcode-box-head">
+          <b>Barcode</b>
+          <input id="f-barcodetext" class="mono" readonly>
+          <button class="btn btn-ghost btn-sm" onclick="regenerateBarcode()">Regenerate</button>
+        </div>
+        <div class="barcode-visual mono" id="barcodeVisual"></div>
+        <div class="barcode-caption" id="barcodeCaption"></div>
+      </div>
+
+      <div class="notes-section">
+        <div class="notes-head">
+          <span>Notes</span>
+          <button class="add-note-btn" onclick="addNoteRow()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Add note
+          </button>
+        </div>
+        <div id="notesList"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeLocationModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLocation()" id="saveLocationBtn">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pickerOverlay">
+  <div class="modal" style="width:480px;">
+    <div class="modal-head">
+      <h3>Select parent location</h3>
+      <button class="modal-close" onclick="closePicker()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="picker-tree" id="pickerTree"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closePicker()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmPicker()">Select</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TYPES = {
+  company:{label:'Company', dot:'#8B90A0', classificationApplies:false, samplingSite:false, children:['site'], desc:'Top-level organisation.'},
+  site:{label:'Site / Plant', dot:'#2F4B9F', classificationApplies:false, samplingSite:false, children:['building'], desc:'The geographic location or entire campus.'},
+  building:{label:'Building / Facility', dot:'#2F4B9F', classificationApplies:false, samplingSite:false, children:['suite'], desc:'The physical building dedicated to a specific product form.'},
+  suite:{label:'Suite / Line', dot:'#EC7802', classificationApplies:false, samplingSite:false, children:['grade'], desc:'A cluster of connected rooms working on a specific manufacturing line.'},
+  grade:{label:'Environmental Class / Grade', dot:'#B3261E', classificationApplies:true, samplingSite:false, children:['samplepoint'], desc:'The cleanliness level of that specific zone.'},
+  samplepoint:{label:'Sample Point ID', dot:'#0F6E56', classificationApplies:false, samplingSite:true, children:[], desc:'The precise, fixed code marked on the floor plan where the sample is taken.'}
+};
+const GRADES = ['A','B','C','D'];
+const GRADE_LIMITS = {
+  A:{air:['0 (expect)','1'], settle:['0 (expect)','1'], contact:['0 (expect)','1'], glove:['0 (expect)','1']},
+  B:{air:['5','10'], settle:['2','5'], contact:['2','5'], glove:['2','5']},
+  C:{air:['50','100'], settle:['25','50'], contact:['12','25'], glove:['n/a','n/a']},
+  D:{air:['100','200'], settle:['50','100'], contact:['25','50'], glove:['n/a','n/a']}
+};
+const PROCESS_TO_GRADE = {'aseptic-critical':'A','aseptic-background':'B','terminal-less-critical':'C','component-prep':'D','non-sterile':''};
+const PLACEHOLDER_EXAMPLES = {
+  company:{name:'e.g. Sun Pharma', desc:'e.g. Parent company'},
+  site:{name:'e.g. Site-01 (Mumbai Plant)', desc:'e.g. Geographic location / entire campus'},
+  building:{name:'e.g. Building-B (Injectables Block)', desc:'e.g. Building dedicated to injectables'},
+  suite:{name:'e.g. Filling Line 4', desc:'e.g. Granulation Suite A'},
+  grade:{name:'e.g. Grade A', desc:'e.g. Critical core'},
+  samplepoint:{name:'e.g. SP-VFR-04', desc:'e.g. Next to the filling needle conveyor'}
+};
+
+const ROOT_ID = 'root';
+let ID_SEQ = 100;
+
+let locations = [
+  {id:'0', parentId:ROOT_ID, name:'Sun Pharma', desc:'Parent company', type:'company', code:'SUNPHARMA', classification:'', processType:'', sampleType:'', notes:[]},
+  {id:'1', parentId:'0', name:'Site-01 (Mumbai Plant)', desc:'Geographic location / entire campus', type:'site', code:'SITE-01', classification:'', processType:'', sampleType:'', notes:[]},
+  {id:'2', parentId:'1', name:'Building-B (Injectables Block)', desc:'Building dedicated to injectables', type:'building', code:'BLDG-B', classification:'', processType:'', sampleType:'', notes:[]},
+  {id:'3', parentId:'1', name:'Building-C (Oral Solid Dosage Block)', desc:'Building dedicated to OSD', type:'building', code:'BLDG-C', classification:'', processType:'', sampleType:'', notes:[]},
+  {id:'4', parentId:'2', name:'Filling Line 4', desc:'Cluster of rooms on vial filling line 4', type:'suite', code:'FL-04', classification:'', processType:'', sampleType:'', notes:[]},
+  {id:'6', parentId:'4', name:'Grade A', desc:'Critical core, Vial Filling Room', type:'grade', code:'GR-A-204', classification:'A', processType:'aseptic-critical', sampleType:'', notes:[]},
+  {id:'7', parentId:'6', name:'SP-VFR-04', desc:'Right next to the filling needle conveyor belt', type:'samplepoint', code:'SP-VFR-04', classification:'', processType:'', sampleType:'Viable air', notes:[]},
+  {id:'8', parentId:'4', name:'Grade B', desc:'Background support, Vial Filling Room', type:'grade', code:'GR-B-204', classification:'B', processType:'aseptic-background', sampleType:'', notes:[]},
+  {id:'9', parentId:'8', name:'SP-VFR-08', desc:'East wall, 1.5m from the filling zone', type:'samplepoint', code:'SP-VFR-08', classification:'', processType:'', sampleType:'Contact plate', notes:[]},
+  {id:'14', parentId:'2', name:'Gowning Suite', desc:'Cluster of rooms for personnel gowning & airlock — a Suite, not a Line', type:'suite', code:'GWN-SUITE', classification:'', processType:'', sampleType:'', notes:[]},
+  {id:'16', parentId:'14', name:'Grade B', desc:'Background gowning support, Gowning Room', type:'grade', code:'GR-B-210', classification:'B', processType:'aseptic-background', sampleType:'', notes:[]},
+  {id:'17', parentId:'16', name:'SP-GWN-02', desc:'Glove print check after final gowning stage', type:'samplepoint', code:'SP-GWN-02', classification:'', processType:'', sampleType:'Personnel', notes:[]},
+  {id:'10', parentId:'3', name:'Granulation Suite A', desc:'Cluster of rooms for granulation & packing', type:'suite', code:'GRAN-A', classification:'', processType:'', sampleType:'', notes:[]},
+  {id:'12', parentId:'10', name:'Grade D / ISO 8', desc:'Support room, Blister Packing Room', type:'grade', code:'GR-D-102', classification:'D', processType:'component-prep', sampleType:'', notes:[]},
+  {id:'13', parentId:'12', name:'SP-BPR-01', desc:'Incoming blister strip inspection point', type:'samplepoint', code:'SP-BPR-01', classification:'', processType:'', sampleType:'Contact plate', notes:[]}
+];
+
+const SEED_DATE = '01-Jul-2026 | 09:00:00';
+function formatNow(){
+  const d = new Date();
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const pad=n=>String(n).padStart(2,'0');
+  return `${pad(d.getDate())}-${months[d.getMonth()]}-${d.getFullYear()} | ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+locations.forEach(l=>{
+  l.active = true;
+  l.createdBy = 'super.user';
+  l.createdDate = SEED_DATE;
+  l.updatedBy = 'super.user';
+  l.updatedDate = SEED_DATE;
+  l.history = [{date:SEED_DATE, user:'super.user', action:'created this location', changes:[]}];
+});
+
+let state = { selectedId:'1', expanded:new Set(['0','1','2','4','6','8','14','16','3','10','12']), editingId:null, parentForNew:'1', pickerTarget:null, detailId:null, isAdmin:false };
+
+function byId(id){ return locations.find(l=>l.id===id); }
+function childrenOf(id){ return locations.filter(l=>l.parentId===id); }
+function ancestorsOf(id){
+  let out=[]; let cur=byId(id);
+  while(cur && cur.parentId!==ROOT_ID){ cur=byId(cur.parentId); if(cur) out.unshift(cur); }
+  return out;
+}
+function pathOf(id){ const a=ancestorsOf(id); const n=byId(id); return n? [...a,n] : a; }
+function effectiveGrade(id){
+  let cur=byId(id);
+  while(cur){ if(cur.classification) return cur.classification; cur = cur.parentId===ROOT_ID? null : byId(cur.parentId); }
+  return '';
+}
+function gradeBadge(grade, inherited){
+  if(!grade) return '<span class="grade-none">—</span>';
+  const cls = 'grade-'+grade.toLowerCase();
+  return `<span class="grade-badge ${cls} ${inherited?'grade-inherited':''}">${grade}</span>`;
+}
+function programPill(sampleType){
+  if(!sampleType) return '';
+  const isPms = sampleType==='Personnel';
+  return `<span class="program-pill ${isPms?'program-pms':'program-em'}">${isPms?'PMS':'EM'}</span>`;
+}
+function hashCode(str){ let h=0; for(let i=0;i<str.length;i++){ h=(h*31+str.charCodeAt(i))>>>0; } return h; }
+function makeBarcodeText(node){
+  const typeCode = node.type.slice(0,2).toUpperCase();
+  return typeCode + (node.code||'').toUpperCase();
+}
+function renderBarcodeBars(text){
+  let bars=''; const h=hashCode(text||'X');
+  const n = Math.min(46, Math.max(24, (text||'X').length*3));
+  for(let i=0;i<n;i++){
+    const seed=(h>>((i%8))) ^ (i*2654435761);
+    const w=1+(Math.abs(seed)%3);
+    const isBar=(Math.abs(seed)%5)!==0;
+    bars+=`<span style="width:${w}px;background:${isBar?'#232734':'transparent'}"></span>`;
+  }
+  return bars;
+}
+
+function renderTree(){
+  const root = locations.filter(l=>l.parentId===ROOT_ID);
+  document.getElementById('treeScroll').innerHTML = root.map(renderTreeNode).join('');
+}
+function renderTreeNode(node){
+  const kids = childrenOf(node.id);
+  const hasKids = kids.length>0;
+  const isOpen = state.expanded.has(node.id);
+  const isSel = state.selectedId===node.id;
+  return `
+  <div class="tree-node">
+    <div class="tree-row ${isSel?'selected':''}" onclick="selectNode('${node.id}')">
+      <span class="tree-caret ${hasKids?'':'leaf'} ${isOpen?'open':''}" onclick="event.stopPropagation(); toggleExpand('${node.id}')">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 6 6 6-6 6"/></svg>
+      </span>
+      <span class="tree-label">${node.name}</span>
+    </div>
+    ${hasKids? `<div class="tree-children ${isOpen?'':'collapsed'}">${kids.map(renderTreeNode).join('')}</div>` : ''}
+  </div>`;
+}
+function toggleExpand(id){
+  if(state.expanded.has(id)) state.expanded.delete(id); else state.expanded.add(id);
+  renderTree();
+}
+function selectNode(id){
+  state.selectedId=id;
+  if(childrenOf(id).length){ state.expanded.add(id); }
+  closeDetailPanel();
+  renderTree(); renderBreadcrumb(); renderTable();
+}
+
+function renderBreadcrumb(){
+  const path = pathOf(state.selectedId);
+  document.getElementById('breadcrumb').innerHTML = path.map((n,i)=>
+    (i>0?'<span class="crumb-sep">›</span>':'') + `<b>${n.name}</b>`
+  ).join(' ');
+}
+function renderTable(){
+  const kids = childrenOf(state.selectedId);
+  const q = (document.getElementById('tableSearch').value||'').toLowerCase();
+  const filtered = kids.filter(n => n.name.toLowerCase().includes(q) || n.desc.toLowerCase().includes(q));
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  if(filtered.length===0){ tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML = filtered.map(n=>{
+    const t = TYPES[n.type];
+    const grade = n.classification || (t.samplingSite? effectiveGrade(n.parentId) : '');
+    const inherited = !n.classification && t.samplingSite;
+    const barcodeText = makeBarcodeText(n);
+    return `<tr>
+      <td class="name-cell">${n.name}</td>
+      <td class="desc-cell">${n.desc}</td>
+      <td><span class="type-pill"><span class="type-dot" style="background:${t.dot}"></span>${t.label}</span></td>
+      <td>${(t.classificationApplies||t.samplingSite)? gradeBadge(grade, inherited) : '<span class="grade-none">n/a</span>'}</td>
+      <td>${n.sampleType? n.sampleType+programPill(n.sampleType) : '<span class="grade-none">—</span>'}</td>
+      <td class="code-cell mono">${n.code}</td>
+      <td class="code-cell mono">${barcodeText}</td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn" title="View details" onclick="openDetailPanel('${n.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button class="icon-btn" title="Open children" onclick="selectNode('${n.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+          <button class="icon-btn" title="Edit" onclick="openLocationModal('${n.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openLocationModal(editId, parentId){
+  state.editingId = editId || null;
+  state.parentForNew = editId ? byId(editId).parentId : (parentId || ROOT_ID);
+  document.getElementById('locationModalTitle').textContent = editId? 'Edit location' : 'Add new location';
+  document.getElementById('saveLocationBtn').textContent = editId? 'Save changes' : 'Create';
+
+  const parentNode = state.parentForNew===ROOT_ID? null : byId(state.parentForNew);
+  document.getElementById('f-parent').value = parentNode? parentNode.name : '— top level —';
+
+  const allowed = parentNode? TYPES[parentNode.type].children : ['company'];
+  const typeSel = document.getElementById('f-type');
+  typeSel.innerHTML = allowed.map(t=>`<option value="${t}">${TYPES[t].label}</option>`).join('');
+
+  const node = editId? byId(editId) : null;
+  document.getElementById('f-name').value = node? node.name : '';
+  document.getElementById('f-desc').value = node? node.desc : '';
+  document.getElementById('f-code').value = node? node.code : '';
+  typeSel.value = node? node.type : allowed[0];
+  document.getElementById('f-processtype').value = node? (node.processType||'aseptic-critical') : 'aseptic-critical';
+
+  const notesList = document.getElementById('notesList');
+  notesList.innerHTML = '';
+  (node && node.notes.length? node.notes : []).forEach(n=>addNoteRow(n));
+
+  onTypeChange(node);
+  updateBarcode();
+
+  document.getElementById('locationModalOverlay').classList.add('open');
+}
+function closeLocationModal(){ document.getElementById('locationModalOverlay').classList.remove('open'); }
+
+function onTypeChange(prefillNode){
+  const type = document.getElementById('f-type').value;
+  const t = TYPES[type];
+  document.getElementById('typeHint').textContent = t.desc;
+  const ex = PLACEHOLDER_EXAMPLES[type];
+  document.getElementById('f-name').placeholder = ex.name;
+  document.getElementById('f-desc').placeholder = ex.desc;
+
+  document.getElementById('f-processtype-wrap').style.display = (type==='grade')? 'flex':'none';
+  document.getElementById('f-sampletype-wrap').style.display = (type==='samplepoint')? 'flex':'none';
+  document.getElementById('f-classification-wrap').style.display = t.classificationApplies? 'flex':'none';
+
+  if(prefillNode && prefillNode.sampleType) document.getElementById('f-sampletype').value = prefillNode.sampleType;
+
+  if(type==='grade'){
+    const classSel = document.getElementById('f-classification');
+    classSel.innerHTML = GRADES.map(g=>`<option value="${g}">${g}</option>`).join('') + `<option value="">Unclassified</option>`;
+    classSel.value = (prefillNode && prefillNode.classification) || PROCESS_TO_GRADE[document.getElementById('f-processtype').value] || 'A';
+  }
+  updateBarcode();
+}
+function onProcessTypeChange(){
+  const g = PROCESS_TO_GRADE[document.getElementById('f-processtype').value];
+  if(document.getElementById('f-type').value==='grade'){ document.getElementById('f-classification').value = g || ''; }
+}
+function addNoteRow(text){
+  const wrap=document.createElement('div');
+  wrap.className='note-row';
+  wrap.innerHTML = `<textarea placeholder="Add a note…">${text?text:''}</textarea><button class="icon-btn" onclick="this.parentElement.remove()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6 6 18M6 6l12 12"/></svg></button>`;
+  document.getElementById('notesList').appendChild(wrap);
+}
+function updateBarcode(){
+  const code = document.getElementById('f-code').value || 'CODE';
+  const type = document.getElementById('f-type').value;
+  const text = (type.slice(0,2).toUpperCase()) + code.toUpperCase();
+  document.getElementById('f-barcodetext').value = text;
+  document.getElementById('barcodeVisual').innerHTML = renderBarcodeBars(text);
+  document.getElementById('barcodeCaption').textContent = text;
+}
+function regenerateBarcode(){ updateBarcode(); }
+document.getElementById('f-code').addEventListener('input', updateBarcode);
+
+function saveLocation(){
+  const name = document.getElementById('f-name').value.trim();
+  const desc = document.getElementById('f-desc').value.trim();
+  const code = document.getElementById('f-code').value.trim();
+  const type = document.getElementById('f-type').value;
+  if(!name || !desc || !code){ alert('Name, description and location code are required.'); return; }
+
+  const classification = TYPES[type].classificationApplies? document.getElementById('f-classification').value : '';
+  const processType = type==='grade'? document.getElementById('f-processtype').value : '';
+  const sampleType = type==='samplepoint'? document.getElementById('f-sampletype').value : '';
+  const notes = Array.from(document.querySelectorAll('#notesList textarea')).map(t=>t.value).filter(Boolean);
+
+  if(state.editingId){
+    const n = byId(state.editingId);
+    const before = {name:n.name, desc:n.desc, code:n.code, type:n.type, classification:n.classification, sampleType:n.sampleType, processType:n.processType};
+    Object.assign(n, {name, desc, code, type, classification, processType, sampleType, notes});
+    const after = {name, desc, code, type, classification, processType, sampleType};
+    const fieldLabels = {name:'Name', desc:'Description', code:'Location code', type:'Location type', classification:'Classification', sampleType:'Sample type', processType:'Process type'};
+    const changes = [];
+    Object.keys(fieldLabels).forEach(k=>{
+      let a = before[k]||'', b = after[k]||'';
+      if(k==='type'){ a = a? TYPES[a].label : ''; b = b? TYPES[b].label : ''; }
+      if(a!==b){ changes.push({field:fieldLabels[k], from:a||'—', to:b||'—'}); }
+    });
+    n.updatedBy = 'super.user';
+    n.updatedDate = formatNow();
+    if(changes.length){
+      n.history.unshift({date:n.updatedDate, user:'super.user', action:'updated this location', changes});
+    }
+  } else {
+    const id = String(++ID_SEQ);
+    const now = formatNow();
+    locations.push({id, parentId: state.parentForNew, name, desc, code, type, classification, processType, sampleType, notes,
+      active:true, createdBy:'super.user', createdDate:now, updatedBy:'super.user', updatedDate:now,
+      history:[{date:now, user:'super.user', action:'created this location', changes:[]}]});
+    if(state.parentForNew!==ROOT_ID) state.expanded.add(state.parentForNew);
+  }
+  closeLocationModal();
+  renderTree(); renderTable();
+  if(state.detailId===state.editingId) renderDetailPanel();
+}
+
+function openPicker(){
+  state.pickerTarget = null;
+  document.getElementById('pickerTree').innerHTML = `<div class="picker-row" onclick="pickNode(null, this)">— top level —</div>` +
+    locations.filter(l=>l.parentId===ROOT_ID).map(renderPickerNode).join('');
+  document.getElementById('pickerOverlay').classList.add('open');
+}
+function renderPickerNode(node){
+  const kids = childrenOf(node.id);
+  return `<div class="picker-row" onclick="pickNode('${node.id}', this)">${node.name} <span style="color:var(--ink-faint);font-size:12px;margin-left:6px;">${TYPES[node.type].label}</span></div>
+  ${kids.length? `<div class="picker-children">${kids.map(renderPickerNode).join('')}</div>`:''}`;
+}
+function pickNode(id, el){
+  document.querySelectorAll('.picker-row').forEach(r=>r.classList.remove('picked'));
+  el.classList.add('picked');
+  state.pickerTarget = id;
+}
+function closePicker(){ document.getElementById('pickerOverlay').classList.remove('open'); }
+function confirmPicker(){
+  state.parentForNew = state.pickerTarget || ROOT_ID;
+  const parentNode = state.parentForNew===ROOT_ID? null : byId(state.parentForNew);
+  document.getElementById('f-parent').value = parentNode? parentNode.name : '— top level —';
+  const allowed = parentNode? TYPES[parentNode.type].children : ['company'];
+  const typeSel = document.getElementById('f-type');
+  typeSel.innerHTML = allowed.map(t=>`<option value="${t}">${TYPES[t].label}</option>`).join('');
+  onTypeChange();
+  closePicker();
+}
+
+function toggleKebab(){ document.getElementById('kebabMenu').classList.toggle('open'); }
+function closeKebab(){ document.getElementById('kebabMenu').classList.remove('open'); }
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.tabbar-menu')) closeKebab();
+});
+function showView(name){
+  document.getElementById('view-hierarchy').classList.toggle('active', name==='hierarchy');
+  document.getElementById('view-config').classList.toggle('active', name==='config');
+  if(name==='config'){ renderConfigViews(); }
+}
+function showConfigPane(name){
+  document.getElementById('cfgtab-classification').classList.toggle('active', name==='classification');
+  document.getElementById('cfgtab-type').classList.toggle('active', name==='type');
+  document.getElementById('pane-classification').classList.toggle('active', name==='classification');
+  document.getElementById('pane-type').classList.toggle('active', name==='type');
+}
+
+function onAdminModeChange(){
+  state.isAdmin = document.getElementById('adminModeToggle').checked;
+  document.getElementById('adminLockedNote').style.display = state.isAdmin? 'none':'flex';
+  document.getElementById('createTypeForm').style.display = state.isAdmin? 'block':'none';
+  if(state.isAdmin){
+    const parentSel = document.getElementById('ct-parent');
+    parentSel.innerHTML = Object.keys(TYPES).map(k=>`<option value="${k}">${TYPES[k].label}</option>`).join('');
+  }
+}
+function slugify(name){
+  return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || ('level'+Date.now());
+}
+function createLocationType(){
+  const name = document.getElementById('ct-name').value.trim();
+  const desc = document.getElementById('ct-desc').value.trim();
+  const parent = document.getElementById('ct-parent').value;
+  const classificationApplies = document.getElementById('ct-classification').checked;
+  const samplingSite = document.getElementById('ct-sampling').checked;
+  if(!name || !desc){ alert('Name and description are required.'); return; }
+  let key = slugify(name);
+  if(TYPES[key]){ key = key + '-2'; }
+  TYPES[key] = { label:name, dot:'#6B7280', classificationApplies, samplingSite, children:[], desc };
+  TYPES[parent].children.push(key);
+  document.getElementById('ct-name').value='';
+  document.getElementById('ct-desc').value='';
+  document.getElementById('ct-classification').checked=false;
+  document.getElementById('ct-sampling').checked=false;
+  renderConfigViews();
+}
+
+function renderConfigViews(){
+  document.getElementById('gradeTableBody').innerHTML = GRADES.map(g=>{
+    const l = GRADE_LIMITS[g];
+    const pair = p => `<span class="limit-pair"><span class="alert">alert ${p[0]}</span> · <span class="action">action ${p[1]}</span></span>`;
+    return `<tr><td>${gradeBadge(g,false)}</td><td>${pair(l.air)}</td><td>${pair(l.settle)}</td><td>${pair(l.contact)}</td><td>${pair(l.glove)}</td></tr>`;
+  }).join('');
+
+  document.getElementById('typeTreeContainer').innerHTML = renderTypeTreeNode('company');
+  showConfigPane('classification');
+}
+function renderTypeTreeNode(key){
+  const t = TYPES[key];
+  const kids = t.children;
+  return `<div class="type-tree-node">
+    <div class="type-tree-row">
+      <span class="type-tree-caret ${kids.length? '':'leaf'}">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 6 6 6-6 6"/></svg>
+      </span>
+      <span class="type-tree-dot" style="background:${t.dot}"></span>
+      <span class="type-tree-label">${t.label}</span>
+      <span class="type-tree-desc">${t.desc}</span>
+      <span class="type-tree-flags">
+        <span class="flag-chip ${t.classificationApplies?'flag-yes':'flag-no'}">${t.classificationApplies?'Grade':'No grade'}</span>
+        <span class="flag-chip ${t.samplingSite?'flag-yes':'flag-no'}">${t.samplingSite?'Sampling site':'Not a site'}</span>
+      </span>
+    </div>
+    ${kids.length? `<div class="type-tree-children">${kids.map(renderTypeTreeNode).join('')}</div>` : ''}
+  </div>`;
+}
+
+function openDetailPanel(id){
+  state.detailId = id;
+  document.getElementById('detailPanel').style.display='flex';
+  showDetailTab('info');
+  renderDetailPanel();
+}
+function closeDetailPanel(){
+  state.detailId = null;
+  document.getElementById('detailPanel').style.display='none';
+}
+function showDetailTab(name){
+  document.getElementById('dtab-info').classList.toggle('active', name==='info');
+  document.getElementById('dtab-history').classList.toggle('active', name==='history');
+  document.getElementById('dpane-info').classList.toggle('active', name==='info');
+  document.getElementById('dpane-history').classList.toggle('active', name==='history');
+}
+function renderDetailPanel(){
+  if(!state.detailId) return;
+  const n = byId(state.detailId);
+  if(!n){ closeDetailPanel(); return; }
+  const t = TYPES[n.type];
+  const grade = n.classification || (t.samplingSite? effectiveGrade(n.parentId) : '');
+  const inherited = !n.classification && t.samplingSite;
+  const path = pathOf(n.id).map(p=>p.name).join(' › ');
+  const barcodeText = makeBarcodeText(n);
+
+  const rows = [
+    ['Location Hierarchy', path],
+    ['Description', n.desc],
+    ['Location Type', t.label],
+    ['Classification', (t.classificationApplies||t.samplingSite)? gradeBadge(grade, inherited) : '<span class="grade-none">n/a</span>'],
+    ['Sample Type', n.sampleType? n.sampleType+programPill(n.sampleType) : '<span class="grade-none">—</span>'],
+    ['Location Code', `<span class="mono">${n.code}</span>`],
+    ['Barcode', `<div class="barcode-visual mono" style="height:28px;">${renderBarcodeBars(barcodeText)}</div><div class="barcode-caption" style="text-align:left;margin-top:2px;">${barcodeText}</div>`],
+    ['Active', n.active? 'true':'false'],
+    ['Created By', n.createdBy],
+    ['Created Date', n.createdDate],
+    ['Updated By', n.updatedBy],
+    ['Updated Date', n.updatedDate]
+  ];
+  document.getElementById('detailInfoGrid').innerHTML = rows.map(([k,v])=>
+    `<div class="dk">${k}</div><div class="dv">${v}</div>`
+  ).join('');
+
+  document.getElementById('historyFeed').innerHTML = n.history.map(h=>{
+    const initials = (h.user||'??').split('.').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+    const changesHtml = (h.changes && h.changes.length)
+      ? `<div class="history-changes">${h.changes.map(c=>`<div class="history-change"><span class="hc-field">${c.field}</span>: <span class="hc-from">${c.from}</span> → <span class="hc-to">${c.to}</span></div>`).join('')}</div>`
+      : '';
+    return `<div class="history-item">
+      <div class="history-avatar">${initials}</div>
+      <div class="history-content">
+        <div class="history-header"><b>${h.user}</b> ${h.action}</div>
+        <div class="history-time mono">${h.date}</div>
+        ${changesHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+renderTree(); renderBreadcrumb(); renderTable();
+</script>
+</body>
+</html>
